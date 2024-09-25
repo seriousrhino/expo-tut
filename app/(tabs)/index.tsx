@@ -1,70 +1,207 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  Alert,
+  Platform,
+  BackHandler,
+  TouchableOpacity,
+  Modal,
+  Share,
+  Clipboard,
+} from "react-native";
+import { WebView } from "react-native-webview";
+import Constants from "expo-constants";
+import {
+  WebViewNavigation,
+  WebViewOpenWindowEvent,
+} from "react-native-webview/lib/WebViewTypes";
+import axios from "axios";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function App() {
+  const [canGoBack, setCanGoBack] = useState<boolean>(false);
+  const [currentUrl, setCurrentUrl] = useState<string>(
+    "https://example.com"
+    // "https://coinmarketcap.com/currencies/zkml/"
+    // ""
+  );
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [selectedUrl, setSelectedUrl] = useState<string>("");
 
-export default function HomeScreen() {
+  const webViewRef = React.useRef(null);
+
+  // const handleShouldStartLoadWithRequest = async (event) => {
+  //   console.log({ event });
+  //   try {
+  //     const response = await axios.get(event.url);
+  //     const html = response.data;
+
+  //     // console.log("html", html);
+  //     webViewRef.current?.injectJavaScript(`
+  //       document.open();
+  //       document.write(${JSON.stringify(html)});
+  //       document.close();
+  //     `);
+  //     console.log("done");
+  //     // Return false to prevent the WebView from loading the URL itself
+  //     return false;
+  //   } catch (error) {
+  //     console.error("Failed to fetch through proxy:", error);
+  //     // If there's an error, allow the WebView to load the URL directly
+  //     return true;
+  //   }
+  // };
+
+  const getHtml = async (url: string) => {
+    try {
+      const parsedUrl = new URL(url);
+      const origin = parsedUrl.origin;
+      const headers = {
+        Origin: origin,
+        Host: parsedUrl.host,
+        Referer: origin + "/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+      };
+      const response = await axios.get(
+        "https://a7e5dxwo2iug4evxl3wgbf3ehu.srv.us/proxy",
+        {
+          params: {
+            url,
+          },
+          headers,
+        }
+      );
+      const html = response.data;
+
+      console.log("fetched resp for ", url);
+      return html;
+    } catch (error) {
+      console.error("Failed to fetch through proxy:", error);
+      return "";
+    }
+  };
+
+  const handleShouldStartLoadWithRequest = (event) => {
+    console.log("handleShouldStartLoadWithRequest called");
+    console.log("Event:", JSON.stringify(event, null, 2));
+
+    // Always return true for now
+
+    const htmlContent = `
+    <html>
+      <body>
+        <h1>lovo</h1>
+        <p>This is injected content</p>
+        <a href="https://api.ipify.org?format=json">Porxy</a>
+      </body>
+    </html>
+  `;
+
+    getHtml(event.url).then((html) => {
+  
+    // Inject the HTML content
+      const parsedUrl = new URL(event.url);
+      const origin = parsedUrl.origin;
+      webViewRef.current?.injectJavaScript(`
+      (function() {
+      document.open();
+      document.write(${JSON.stringify(html)});
+      document.close();
+
+ 
+
+        // Override URL constructor
+        window.URL = function(url, base) {
+          if (url.startsWith('/')) {
+            url = "${origin}" + url;
+          } else if (!/^https?:\/\//i.test(url)) {
+            url = new originalURL(url, "${event.url}").href;
+          }
+          return new originalURL(url, base);
+        };
+        window.URL.prototype = originalURL.prototype;
+   
+    })();
+    true; // This is needed to make the injection work
+  `);
+    });
+
+    // Inject the HTML content
+    setCurrentUrl(event.url);
+
+    return false;
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <WebView
+        ref={webViewRef}
+        source={{ uri: currentUrl }}
+        style={styles.webview}
+        setSupportMultipleWindows={false}
+        originWhitelist={["*"]}
+        onLoadStart={() => {
+          console.log("onLoadStart");
+        }}
+        onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    marginTop: Constants.statusBarHeight,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  webview: {
+    flex: 1,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  button: {
+    padding: 10,
+    backgroundColor: "lightblue",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalButton: {
+    backgroundColor: "#F194FF",
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+    marginVertical: 5,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  closeButton: {
+    backgroundColor: "#2196F3",
+    marginTop: 10,
   },
 });
