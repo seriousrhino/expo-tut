@@ -87,8 +87,6 @@ export default function App() {
     console.log("handleShouldStartLoadWithRequest called");
     console.log("Event:", JSON.stringify(event, null, 2));
 
-    // Always return true for now
-
     const htmlContent = `
     <html>
       <body>
@@ -100,8 +98,7 @@ export default function App() {
   `;
 
     getHtml(event.url).then((html) => {
-  
-    // Inject the HTML content
+      // Inject the HTML content
       const parsedUrl = new URL(event.url);
       const origin = parsedUrl.origin;
       webViewRef.current?.injectJavaScript(`
@@ -109,28 +106,10 @@ export default function App() {
       document.open();
       document.write(${JSON.stringify(html)});
       document.close();
-
- 
-
-        // Override URL constructor
-        window.URL = function(url, base) {
-          if (url.startsWith('/')) {
-            url = "${origin}" + url;
-          } else if (!/^https?:\/\//i.test(url)) {
-            url = new originalURL(url, "${event.url}").href;
-          }
-          return new originalURL(url, base);
-        };
-        window.URL.prototype = originalURL.prototype;
-   
     })();
-    true; // This is needed to make the injection work
+    true; 
   `);
     });
-
-    // Inject the HTML content
-    setCurrentUrl(event.url);
-
     return false;
   };
 
@@ -145,7 +124,7 @@ export default function App() {
         onLoadStart={() => {
           console.log("onLoadStart");
         }}
-        onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+        // onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       />
     </View>
   );
