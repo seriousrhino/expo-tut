@@ -20,8 +20,11 @@ import {
   WebViewOpenWindowEvent,
 } from "react-native-webview/lib/WebViewTypes";
 import axios from "axios";
+import { NativeModules } from "react-native";
 
 export default function App() {
+  const { CalendarModule } = NativeModules;
+
   const [canGoBack, setCanGoBack] = useState<boolean>(false);
   const [currentUrl, setCurrentUrl] = useState<string>(
     // "https://api.ipify.org"
@@ -142,6 +145,9 @@ export default function App() {
   //     };
   //   })();
   // `;
+  const onPress = () => {
+    CalendarModule.createCalendarEvent("testName", "testLocation");
+  };
 
   return (
     <View style={styles.container}>
@@ -157,6 +163,12 @@ export default function App() {
         }}
         // injectedJavaScript={injectedJavaScript}
         // onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
+      />
+      <Button title="loco" />
+      <Button
+        title="Click to invoke your native module!"
+        color="#841584"
+        onPress={onPress}
       />
     </View>
   );
