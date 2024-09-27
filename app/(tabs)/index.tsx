@@ -10,6 +10,8 @@ import {
   Modal,
   Share,
   Clipboard,
+  Button,
+  Linking,
 } from "react-native";
 import { WebView } from "react-native-webview";
 import Constants from "expo-constants";
@@ -22,9 +24,9 @@ import axios from "axios";
 export default function App() {
   const [canGoBack, setCanGoBack] = useState<boolean>(false);
   const [currentUrl, setCurrentUrl] = useState<string>(
-    "https://example.com"
+    // "https://api.ipify.org"
     // "https://coinmarketcap.com/currencies/zkml/"
-    // ""
+    "https://2ip.io"
   );
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [selectedUrl, setSelectedUrl] = useState<string>("");
@@ -83,35 +85,63 @@ export default function App() {
     }
   };
 
-  const handleShouldStartLoadWithRequest = (event) => {
-    console.log("handleShouldStartLoadWithRequest called");
-    console.log("Event:", JSON.stringify(event, null, 2));
+  //   const handleShouldStartLoadWithRequest = (event) => {
+  //     console.log("handleShouldStartLoadWithRequest called");
+  //     console.log("Event:", JSON.stringify(event, null, 2));
 
-    const htmlContent = `
-    <html>
-      <body>
-        <h1>lovo</h1>
-        <p>This is injected content</p>
-        <a href="https://api.ipify.org?format=json">Porxy</a>
-      </body>
-    </html>
-  `;
+  //     const htmlContent = `
+  //     <html>
+  //       <body>
+  //         <h1>lovo</h1>
+  //         <p>This is injected content</p>
+  //         <a href="https://api.ipify.org?format=json">Porxy</a>
+  //       </body>
+  //     </html>
+  //   `;
 
-    getHtml(event.url).then((html) => {
-      // Inject the HTML content
-      const parsedUrl = new URL(event.url);
-      const origin = parsedUrl.origin;
-      webViewRef.current?.injectJavaScript(`
-      (function() {
-      document.open();
-      document.write(${JSON.stringify(html)});
-      document.close();
-    })();
-    true; 
-  `);
-    });
-    return false;
-  };
+  //     getHtml(event.url).then((html) => {
+  //       // Inject the HTML content
+  //       const parsedUrl = new URL(event.url);
+  //       const origin = parsedUrl.origin;
+  //       setCurrentUrl("https://2ip.io");
+  //       console.log("changed url", parsedUrl);
+  //       webViewRef.current?.injectJavaScript(`
+  //       (function() {
+  //       document.open();
+  //       document.write(${JSON.stringify(html)});
+  //       document.close();
+  //     })();
+  //     true;
+  //   `);
+  //     });
+  //     return false;
+  //   };
+
+  //   const PROXY_URL = "https://a7e5dxwo2iug4evxl3wgbf3ehu.srv.us/proxy";
+  //   const injectedJavaScript = `
+  //   (function() {
+  //     var originalFetch = window.fetch;
+  //     window.fetch = function(input, init) {
+  //       if (typeof input === 'string') {
+  //         input = '${PROXY_URL}?url=' + input;
+  //       } else if (input instanceof Request) {
+  //         input = new Request('${PROXY_URL}?url=' + input.url, input);
+  //       }
+  //       return originalFetch.call(this, input, init);
+  //     };
+
+  //     var originalXHR = window.XMLHttpRequest;
+  //     window.XMLHttpRequest = function() {
+  //       var xhr = new originalXHR();
+  //       var originalOpen = xhr.open;
+  //       xhr.open = function(method, url, ...rest) {
+  //         url = '${PROXY_URL}?url=' + url;
+  //         return originalOpen.call(this, method, url, ...rest);
+  //       };
+  //       return xhr;
+  //     };
+  //   })();
+  // `;
 
   return (
     <View style={styles.container}>
@@ -119,11 +149,13 @@ export default function App() {
         ref={webViewRef}
         source={{ uri: currentUrl }}
         style={styles.webview}
-        setSupportMultipleWindows={false}
+        // setSupportMultipleWindows={false}
         originWhitelist={["*"]}
         onLoadStart={() => {
+          // console.log(injectedJavaScript);
           console.log("onLoadStart");
         }}
+        // injectedJavaScript={injectedJavaScript}
         // onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
       />
     </View>
